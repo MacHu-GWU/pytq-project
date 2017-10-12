@@ -72,12 +72,21 @@ class SqliteDictScheduler(BaseDBTableBackedScheduler):
         raise NotImplementedError
 
     def _default_is_duplicate(self, task):
+        """
+        Check if ``task.id`` is presents in primary_key column.
+        """
         return task.id in self._dct
 
     def _get_finished_id_set(self):
+        """
+        It's Primary key value set.
+        """
         return set(self._dct.keys())
 
     def _default_post_process(self, task):
+        """
+        Write serialized output_data to another column.
+        """
         self._dct[task.id] = task.output_data
 
     def __len__(self):

@@ -86,19 +86,21 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
 
     def _default_is_duplicate(self, task):
         """
-        :param task:
-        :return:
+        Check if ``task.id`` presents in the collection.
         """
-        return self._col.find_one({"_id": task.key}) is not None
+        return self._col.find_one({"_id": task.id}) is not None
 
     def _get_finished_id_set(self):
+        """
+        It's Primary key value set.
+        """
         return set([
             doc["_id"] for doc in self._col.find({}, {"_id": True})
         ])
 
     def _default_post_process(self, task):
         """
-        Save output_data into "out" field.
+        Save output_data into ``out`` field.
         """
         self._col.update(
             {"_id": task.id},

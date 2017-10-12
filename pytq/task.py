@@ -45,7 +45,8 @@ class Task(AttrsClass):
         Generate progress message.
         """
         if self.nth_counter is None:
-            raise ValueError("")
+            msg = "Process: InputData(%r) ..." % self.input_data
+            return msg
 
         if self.left_counter is None:
             msg = "Process %sth: InputData(%r) ..." % (

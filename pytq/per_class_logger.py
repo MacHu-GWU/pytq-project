@@ -21,15 +21,17 @@ class ClassWithLogger(object):
 
     def log_on(self):
         """
-        Turn of logger.
+        Turn on logger.
         """
         self.verbose = True
+        self.logger.enable_verbose = True
 
     def log_off(self):
         """
         Turn off logger.
         """
         self.verbose = False
+        self.logger.enable_verbose = False
 
     def debug(self, msg, indent=0):
         """
@@ -65,3 +67,9 @@ class ClassWithLogger(object):
         """
         if self.verbose:
             self.logger.critical(msg, indent)
+
+    def show(self, msg, indent=0):
+        """
+
+        """
+        self.logger.show(msg, indent=indent)

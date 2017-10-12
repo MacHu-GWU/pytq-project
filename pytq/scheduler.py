@@ -43,6 +43,15 @@ class BaseScheduler(ClassWithLogger):
         except:
             self._is_duplicate = self.user_is_duplicate
 
+        # link post process method
+        try:
+            self.user_batch_pre_process(None)
+            self._batch_pre_process = self.user_batch_pre_process
+        except NotImplementedError:
+            self._batch_pre_process = self._default_batch_pre_process
+        except:
+            self._batch_pre_process = self.user_batch_pre_process
+
         # link pre process method
         try:
             self.user_pre_process(None)
@@ -72,6 +81,11 @@ class BaseScheduler(ClassWithLogger):
 
         :returns: fingerprint for ``input_data``
         :rtype: string.
+
+        **中文文档**
+
+        默认的 取 ``input_data`` 指纹的操作。
+        实际上是对 ``pickle.dumps`` 后的数据取 md5 指纹。
         """
         return hash_data(input_data)
 
@@ -81,6 +95,12 @@ class BaseScheduler(ClassWithLogger):
 
         :returns: fingerprint for ``input_data``
         :rtype: string.
+
+        **中文文档**
+
+        (可选自定义) 用户自己定义的取 ``input_data`` 指纹的操作。如果不定义，则使用
+
+        :meth:`BaseScheduler._default_hash_input` 方法。
         """
         raise NotImplementedError
 
@@ -90,16 +110,10 @@ class BaseScheduler(ClassWithLogger):
 
         :returns: fingerprint for ``input_data``
         :rtype: string.
-        """
-        raise NotImplementedError
 
-    def user_is_duplicate(self, task):
-        """
-        (Optional) Check if a task is duplicate.
+        **中文文档**
 
-        :param task:
-        :return: return True, when it's a duplicate item.
-        :rtype: boolean.
+        实际被调用的取指纹方法。
         """
         raise NotImplementedError
 
@@ -107,22 +121,55 @@ class BaseScheduler(ClassWithLogger):
         """
         Default duplicate test method, always not duplicate.
 
-        :param task:
-        :return:
+        :return: return True, when it's a duplicate item.
+        :rtype: boolean.
+
+        **中文文档**
+
+        默认的任务排重检测。实际上是全部视为 ``不重复``。
         """
         return False  # Alwasy not duplicate
+
+    def user_is_duplicate(self, task):
+        """
+        (Optional) Check if a task is duplicate.
+
+        :return: return True, when it's a duplicate item.
+        :rtype: boolean.
+
+        .. warning::
+
+            If you customized this method, usually you also need to implement
+            :meth:`~BaseScheduler.user_batch_pre_process` method.
+
+            Because default batch pre-process includes duplicate filter.
+
+        **中文文档**
+
+        (可选自定义) 用户自定义的任务排重检测。
+        """
+        raise NotImplementedError
 
     def _is_duplicate(self, task):
         """
         The real duplicate test method will be called.
 
-        :returns: boolean. return True, when it's a duplicate item.
+        :return: return True, when it's a duplicate item.
+        :rtype: boolean.
+
+        **中文文档**
+
+        (可选自定义) 用户自定义的任务排重检测。
         """
         raise NotImplementedError
 
     def _remove_duplicate(self, input_data_queue):
         """
-        Remove duplicate input_data.
+        Remove duplicate input_data. And pack ``input_data`` to
+        :class:`pytq.task.Task`.
+
+        This method will be used for default batch pre-process when
+        ``pre_process`` are not given in :meth:`~BaseScheduler.do`.
 
         :param input_data_queue:
         :returns: task_queue.
@@ -130,10 +177,9 @@ class BaseScheduler(ClassWithLogger):
 
         **中文文档**
 
-        移除那些重复的输入数据。
+        移除那些重复的输入数据，并将 ``input_data`` 打包成 :class:`pytq.task.Task`。
         """
-        is_generator = isinstance(
-            input_data_queue, types.GeneratorType)
+        is_generator = isinstance(input_data_queue, types.GeneratorType)
 
         if not is_generator:
             left_counter = len(input_data_queue)
@@ -156,16 +202,32 @@ class BaseScheduler(ClassWithLogger):
                 nth_counter += 1
                 yield task
 
+    def user_batch_pre_process(self, input_data_queue):
+        """
+        A method will be called to pre process task queue before doing any real
+        per task process. Usually it can be duplicate filter, statistic check.
+
+        :param input_data_queue:
+        :return: task_queue, iterable object, item in it has to be
+        :class:`~pytq.task.Task`. Recommend to implement ``task.nth_counter``
+        and ``task.left_counter`` variable.
+        """
+        raise NotImplementedError
+
     _default_batch_pre_process = _remove_duplicate
-    """
-    A method will be called to pre process task queue before doing any real
-    per task process. Usually it can be duplicate filter, statistic check.
-    """
+    _default_batch_pre_process.__doc__ = _remove_duplicate.__doc__
+
+    def _batch_pre_process(self, input_data_queue):
+        """
+        The real method will be called for batch pre-process.
+        """
+        raise NotImplementedError
 
     def user_pre_process(self, task):
         """
         (Optional) Defines the action that before the
         :meth:`BaseScheduler.user_process() been called.
+        Will be called when :attr:`pytq.task.Task.pre_process` are not defined.
 
         :param task: :class:`pytq.task.Task` instance.
         """
@@ -186,7 +248,16 @@ class BaseScheduler(ClassWithLogger):
     def user_post_process(self, task):
         """
         (Optional) Defines the action that after the
-        :meth:`BaseScheduler.user_process() been called.
+        :meth:`~BaseScheduler.user_process() been called.
+        Will be called when :attr:`pytq.task.Task.post_process` are not defined.
+
+        .. warning::
+
+            When you customized this method, usually you also need to update
+            :meth:`~BaseScheduler.get` method. Because post process usually
+            is used to write output_data to data persistence layer. If you
+            changed the way you store it, you have to change the way you read
+            it.
 
         :param task: :class:`pytq.task.Task` instance.
         """
@@ -220,21 +291,30 @@ class BaseScheduler(ClassWithLogger):
 
         **中文文档**
 
-        处理数据。包含, 哈希, 处理, 标记完成三个步骤
+        处理数据。包含四个步骤：
+
+        1. 哈希
+        2. 预处理
+        3. 处理
+        4. 后处理
         """
         self.info(task.progress_msg())
 
         try:
+            # if task.pre_process not given, use scheduler._pre_process
             if task.pre_process is None:
                 self._pre_process(task)
+            # if given, use task.pre_process
             else:
                 task._pre_process()
 
             output_data = self.user_process(task.input_data)
             task.output_data = output_data
 
+            # if task.post_process not given, use scheduler._post_process
             if task.post_process is None:
                 self._post_process(task)
+            # if given, use task.post_process
             else:
                 task._post_process()
 
@@ -265,15 +345,23 @@ class BaseScheduler(ClassWithLogger):
            pre_process=None,
            multiprocess=False):
         """
-        Do the real work.
+        Process all input_data.
 
-        :param input_data_list: list of input data (or generator).
-        :param quick_remove_duplicate: apply remove finished item (duplicate)
-          filter  before we start the real work.
+        :param input_data_queue: list of input data (or generator).
+        :param pre_process: a callable function take input_data_queue, and
+          pre-process it, returns a task_queue (iterable object, item are
+          :class:`~pytq.task.Task`.
         :param multiprocess: trigger to use multiprocess.
+
+        **中文文档**
+
+        处理数据序列中的所有数据。
+
+        1. 预处理所有数据，将其打包成 ``task_queue``。
+        2. 进行单线程处理或是多线程处理。
         """
         if pre_process is None:
-            task_queue = self._default_batch_pre_process(input_data_queue)
+            task_queue = self._batch_pre_process(input_data_queue)
         else:
             task_queue = pre_process(input_data_queue)
 
@@ -352,6 +440,9 @@ class BaseDBTableBackedScheduler(BaseScheduler):
         raise NotImplementedError
 
     def _default_batch_pre_process(self, input_data_queue):
+        """
+        (Required)
+        """
         finished_id_set = self._get_finished_id_set()
 
         is_generator = isinstance(input_data_queue, types.GeneratorType)
