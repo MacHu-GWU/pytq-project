@@ -8,13 +8,13 @@ from multiprocessing.dummy import Pool
 try:
     from .task import Task
     from .per_class_logger import ClassWithLogger
-    from .util.fingerprint import hash_data
-    from .pkg.sfm.exception_mate import get_last_exc_info
+    from .pkg.fingerprint import hash_data
+    from .pkg.exception_mate import get_last_exc_info
 except:  # pragma: no cover
     from pytq.task import Task
     from pytq.per_class_logger import ClassWithLogger
-    from pytq.util.fingerprint import hash_data
-    from pytq.pkg.sfm.exception_mate import get_last_exc_info
+    from pytq.pkg.fingerprint import hash_data
+    from pytq.pkg.exception_mate import get_last_exc_info
 
 
 class BaseScheduler(ClassWithLogger):

@@ -70,6 +70,6 @@ class ClassWithLogger(object):
 
     def show(self, msg, indent=0):
         """
-
+        Print to console.
         """
         self.logger.show(msg, indent=indent)
