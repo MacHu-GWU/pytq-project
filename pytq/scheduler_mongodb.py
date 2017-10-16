@@ -11,10 +11,24 @@ except:  # pragma: no cover
 
 class MongoDBScheduler(BaseDBTableBackedScheduler):
     """
+    MongoDB collection backed scheduler.
 
+    Feature:
+
+    1. fingerprint of :meth:`~MongoDBScheduler._hash_input()` will be ``_id``
+      field in MongoDB collection.
+    2. output_data will be serialized and stored in ``out`` field.
+    3. if fingerprint exists in collection means, it's NOT duplicate,
+      otherwise, it's duplicate.
+
+    :param logger: A :class:`loggerFactory.logger.BaseLogger` instance.
     :param collection: :class:`pymongo.Collection` instance.
     """
     collection = None
+    """
+    Backend :class:`pymongo.Collection`. You could define that when you
+    initiate the scheduler.
+    """
 
     def __init__(self, logger=None, collection=None):
         super(MongoDBScheduler, self).__init__(logger=logger)
@@ -44,7 +58,8 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
     @property
     def collection(self):
         """
-        Back-end mongodb collection.
+        Backend :class:`pymongo.Collection`. You could define that when you
+        initiate the scheduler.
         """
         raise NotImplementedError
 

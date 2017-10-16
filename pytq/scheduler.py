@@ -431,7 +431,7 @@ class BaseDBTableBackedScheduler(BaseScheduler):
 
     def _get_finished_id_set(self):
         """
-        (Required) A method that returns all saved id set.
+        A method that returns all saved id set.
         (For all processed input_data)
 
         :returns: a id set.
@@ -441,7 +441,11 @@ class BaseDBTableBackedScheduler(BaseScheduler):
 
     def _default_batch_pre_process(self, input_data_queue):
         """
-        (Required)
+        Default method to pre-process input_data_queue in Database Table backed
+        scheduler. The logic is:
+
+        1. get all finished _id set.
+        2. filter out all input_data that fingerprint falls in that set.
         """
         finished_id_set = self._get_finished_id_set()
 
