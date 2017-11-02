@@ -28,10 +28,10 @@ def validate_schduler_implement(scheduler):
     scheduler.clear_all()
     scheduler.log_on()
 
-    scheduler.do(input_data_queue1)
+    scheduler.do(input_data_queue1, ignore_error=False)
     assert len(scheduler) == len(input_data_queue1)
 
-    scheduler.do(input_data_queue2)
+    scheduler.do(input_data_queue2, ignore_error=False)
     assert len(scheduler) == len(input_data_queue2)
 
     for id, output_data in scheduler.items():
@@ -39,10 +39,10 @@ def validate_schduler_implement(scheduler):
 
     scheduler.clear_all()
 
-    scheduler.do(input_data_queue1, multiprocess=True)
+    scheduler.do(input_data_queue1, multiprocess=True, ignore_error=False)
     assert len(scheduler) == len(input_data_queue1)
 
-    scheduler.do(input_data_queue2, multiprocess=True)
+    scheduler.do(input_data_queue2, multiprocess=True, ignore_error=False)
     assert len(scheduler) == len(input_data_queue2)
 
     for id, output_data in scheduler.items():

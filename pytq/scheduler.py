@@ -20,6 +20,25 @@ except:  # pragma: no cover
 class BaseScheduler(ClassWithLogger):
     """
     All Scheduler has to inherit from this base class.
+
+    Step1. Workflow:
+
+    Generate task queue, it is a list of input_data.
+
+    Step2. Pre-process input data:
+
+    1. remove duplicate.
+    2. generate :class:`~pytq.task.Task`.
+
+    :meth:`~BaseScheduler._default_batch_pre_process` method will be called by
+    default.
+
+    Step3. For each task, :meth:`~BaseScheduler._process` method will be called,
+    includes:
+
+    1. pre_process
+    2. user_process, input_data -> output_data
+    3. post_process
     """
 
     def __init__(self, logger=None):
@@ -69,6 +88,10 @@ class BaseScheduler(ClassWithLogger):
             self._post_process = self._default_post_process
         except:
             self._post_process = self.user_post_process
+
+        # if True, error will not stop the program
+        # if False, error will be immediately raised
+        self.ignore_error = None
 
     def _default_hash_input(self, input_data):
         """
@@ -285,42 +308,50 @@ class BaseScheduler(ClassWithLogger):
         """
         raise NotImplementedError
 
-    def _process(self, task):
+    def _process_one(self, task):
         """
-        The real processing method will be called.
+        Process one task.
 
         **中文文档**
 
-        处理数据。包含四个步骤：
+        处理数据。包含三个步骤：
 
-        1. 哈希
-        2. 预处理
-        3. 处理
-        4. 后处理
+        1. 预处理
+        2. 处理
+        3. 后处理
+        """
+        # if task.pre_process not given, use scheduler._pre_process
+        if task.pre_process is None:
+            self._pre_process(task)
+        # if given, use task.pre_process
+        else:
+            task._pre_process()
+
+        output_data = self.user_process(task.input_data)
+        task.output_data = output_data
+
+        # if task.post_process not given, use scheduler._post_process
+        if task.post_process is None:
+            self._post_process(task)
+        # if given, use task.post_process
+        else:
+            task._post_process()
+
+    def _process(self, task):
+        """
+        The real processing method will be called.
         """
         self.info(task.progress_msg())
 
-        try:
-            # if task.pre_process not given, use scheduler._pre_process
-            if task.pre_process is None:
-                self._pre_process(task)
-            # if given, use task.pre_process
-            else:
-                task._pre_process()
-
-            output_data = self.user_process(task.input_data)
-            task.output_data = output_data
-
-            # if task.post_process not given, use scheduler._post_process
-            if task.post_process is None:
-                self._post_process(task)
-            # if given, use task.post_process
-            else:
-                task._post_process()
-
+        if self.ignore_error:
+            try:
+                self._process_one(task)
+                self.info("Success!", 1)
+            except Exception as e:
+                self.info("Failed due to: %r" % get_last_exc_info(), 1)
+        else:
+            self._process_one(task)
             self.info("Success!", 1)
-        except Exception as e:
-            self.info("Failed due to: %r" % get_last_exc_info(), 1)
 
     def _do_single_process(self, task_queue):
         """
@@ -343,7 +374,8 @@ class BaseScheduler(ClassWithLogger):
     def do(self,
            input_data_queue,
            pre_process=None,
-           multiprocess=False):
+           multiprocess=False,
+           ignore_error=True):
         """
         Process all input_data.
 
@@ -369,6 +401,8 @@ class BaseScheduler(ClassWithLogger):
             self.info("\nHas %s items todo." % len(input_data_queue))
         except:
             self.info("\nHas UNKNOWN items todo")
+
+        self.ignore_error = ignore_error
 
         if multiprocess:
             self._do_multi_process(task_queue)
