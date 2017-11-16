@@ -10,6 +10,10 @@ except:  # pragma: no cover
 
 
 class SqliteDictScheduler(BaseDBTableBackedScheduler, Encoder):
+    """
+    A sqlite database backed scheduler. The primary key field is for
+    fingerprint of input data, another field for output data.
+    """
     user_db_path = None
 
     def __init__(self, logger=None, user_db_path=None):

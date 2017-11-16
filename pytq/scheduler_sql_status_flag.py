@@ -10,16 +10,13 @@ from .scheduler_sql import SqlScheduler
 
 class SqlStatusFlagScheduler(SqlScheduler, StatusFlag):
     """
-    MongoDB collection backed scheduler.
+    Similar to :class:`~pytq.scheduler_sql.SqlScheduler`.
 
-    Feature:
+    New Feature:
 
-    1. fingerprint of :meth:`~MongoDBScheduler._hash_input()` will be ``_id``
-      field in MongoDB collection.
-    2. output_data will be serialized and stored in ``out`` field.
-    3. there's pre-defined integer - ``duplicate_flag``, will be stored in
-      ``status`` field. there's a ``edit_at`` datetime field, represent the
-      last time the document been edited.
+    There's pre-defined integer - ``duplicate_flag``, will be stored in
+    ``status`` column. there's a ``edit_at`` datetime column, represent the
+    last time the row been edited.
 
     .. note::
 
@@ -27,8 +24,6 @@ class SqlStatusFlagScheduler(SqlScheduler, StatusFlag):
         time is smaller ``update_interval`` seconds ago, means it is a duplicate
         item.
 
-    :param logger: A :class:`loggerFactory.logger.BaseLogger` instance.
-    :param collection: :class:`pymongo.Collection` instance.
     :param duplicate_flag: int, represent a status code for finished / duplicate
     :param update_interval: int, represent need-to-update interval (unit: seconds)
     """
@@ -104,7 +99,7 @@ class SqlStatusFlagScheduler(SqlScheduler, StatusFlag):
 
     def _default_post_process(self, task):
         """
-        Save output_data into ``out`` field.
+        Write serialized output_data to "_out" column.
         """
         ins = self.table.insert()
         row = {

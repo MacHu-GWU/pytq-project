@@ -13,6 +13,10 @@ except:  # pragma: no cover
 
 class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
     """
+    A SQL database backed scheduler. Fingerprint of input data will be stored
+    under :attr:`~SqlScheduler.id_key` column ("_id" by default). output data
+    will be serialized and stored under :attr:`~SqlScheduler.out_key` column.
+
     :param uri: connection string for sqlaclhemy.create_engine(uri)
     :param table: str or sa.Table. If you use the default post process,
         the table has to have `_out` column. But a string name is recommended.
@@ -129,7 +133,7 @@ class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
 
     def _default_post_process(self, task):
         """
-        Write serialized output_data to another column.
+        Write serialized output_data to "_out" column.
         """
         ins = self.table.insert()
         row = {

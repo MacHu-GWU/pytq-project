@@ -8,13 +8,22 @@ from .scheduler_mongodb import MongoDBScheduler
 
 class MongoDBStatusFlagScheduler(MongoDBScheduler, StatusFlag):
     """
-    MongoDB collection backed scheduler.
+    Similar to :class:`~pytq.scheduler_mongodb.MongoDBScheduler`.
 
-    Feature:
+    New Feature:
 
-    1. fingerprint of :meth:`~MongoDBScheduler._hash_input()` will be ``_id``
-      field in MongoDB collection.
-    2. output_data will be serialized and stored in ``out`` field.
+    There's pre-defined integer - ``duplicate_flag``, will be stored in
+    ``status`` field. there's a ``edit_at`` datetime field, represent the
+    last time the document been edited.
+
+    .. note::
+
+        Any value greater or equal than ``duplicate_flag``, AND the ``edit_at``
+        time is smaller ``update_interval`` seconds ago, means it is a duplicate
+        item.
+
+    :param duplicate_flag: int, represent a status code for finished / duplicate
+    :param update_interval: int, represent need-to-update interval (unit: seconds)
     """
 
     def __init__(self, logger=None, collection=None,

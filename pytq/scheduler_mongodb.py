@@ -16,11 +16,8 @@ class MongoDBScheduler(BaseDBTableBackedScheduler, Encoder):
     1. fingerprint of :meth:`~MongoDBScheduler._hash_input()` will be ``_id``
       field in MongoDB collection.
     2. output_data will be serialized and stored in ``out`` field.
-    3. if fingerprint exists in collection means, it's NOT duplicate,
-      otherwise, it's duplicate.
 
-    :param logger: A :class:`loggerFactory.logger.BaseLogger` instance.
-    :param collection: :class:`pymongo.Collection` instance.
+    :param collection: :class:`pymongo.Collection`.
     """
     collection = None
     """
