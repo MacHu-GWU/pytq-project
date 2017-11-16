@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pickle
-
 try:
-    from pytq.scheduler import Task, BaseDBTableBackedScheduler
+    from .scheduler import Task, BaseDBTableBackedScheduler, Encoder
 except:  # pragma: no cover
-    from pytq.scheduler import Task, BaseDBTableBackedScheduler
+    from pytq.scheduler import Task, BaseDBTableBackedScheduler, Encoder
 
 
-class MongoDBScheduler(BaseDBTableBackedScheduler):
+class MongoDBScheduler(BaseDBTableBackedScheduler, Encoder):
     """
     MongoDB collection backed scheduler.
 
@@ -30,6 +28,11 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
     initiate the scheduler.
     """
 
+    output_key = "_out"
+    """
+    Default field name used to store output_data
+    """
+
     def __init__(self, logger=None, collection=None):
         super(MongoDBScheduler, self).__init__(logger=logger)
 
@@ -37,23 +40,7 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
             self.collection = collection
         self._col = self.collection
 
-        # link encode method
-        try:
-            self.user_encode(None)
-            self._encode = self.user_encode
-        except NotImplementedError:
-            self._encode = self._default_encode
-        except:
-            self._encode = self.user_encode
-
-        # link decode method
-        try:
-            self.user_decode(None)
-            self._decode = self.user_decode
-        except NotImplementedError:
-            self._decode = self._default_decode
-        except:
-            self._decode = self.user_decode
+        self.link_encode_method()
 
     @property
     def collection(self):
@@ -61,42 +48,6 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
         Backend :class:`pymongo.Collection`. You could define that when you
         initiate the scheduler.
         """
-        raise NotImplementedError
-
-    def _default_encode(self, obj):
-        return pickle.dumps(obj)
-
-    def user_encode(self, obj):
-        """
-        (Optional) User defined serializer for output_data.
-
-        :returns: bytes or string.
-
-        **中文文档**
-
-        用于对处理结果序列化的函数。默认使用pickle。
-        """
-        raise NotImplementedError
-
-    def _encode(self, obj):
-        raise NotImplementedError
-
-    def _default_decode(self, bytes_or_str):
-        return pickle.loads(bytes_or_str)
-
-    def user_decode(self, bytes_or_str):
-        """
-        (Optional) User defined deserializer for output_data.
-
-        :returns: python object.
-
-        **中文文档**
-
-        用于对处理结果反序列化的函数。默认使用pickle。
-        """
-        raise NotImplementedError
-
-    def _decode(self, bytes_or_str):
         raise NotImplementedError
 
     def _default_is_duplicate(self, task):
@@ -119,7 +70,7 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
         """
         self._col.update(
             {"_id": task.id},
-            {"$set": {"out": self._encode(task.output_data)}},
+            {"$set": {self.output_key: self._encode(task.output_data)}},
             upsert=True,
         )
 
@@ -135,8 +86,8 @@ class MongoDBScheduler(BaseDBTableBackedScheduler):
 
     def get_output(self, input_data):
         key = self.user_hash_input(input_data)
-        return self._decode(self._col.find_one({"_id", key})["out"])
+        return self._decode(self._col.find_one({"_id": key})[self.output_key])
 
     def items(self):
         for doc in self._col.find():
-            yield (doc["_id"], self._decode(doc["out"]))
+            yield (doc["_id"], self._decode(doc[self.output_key]))

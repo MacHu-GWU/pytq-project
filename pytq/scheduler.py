@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import types
+import pickle
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
 
@@ -362,19 +363,22 @@ class BaseScheduler(ClassWithLogger):
         for task in task_queue:
             self._process(task)
 
-    def _do_multi_process(self, task_queue):
+    def _do_multi_process(self, task_queue, processes=None):
         """
         Execute multi thread process.
 
         :param task_queue: task queue/list.
         """
-        pool = Pool(processes=cpu_count())
+        if processes is None:
+            processes = cpu_count()
+        pool = Pool(processes=processes)
         pool.map(self._process, task_queue)
 
     def do(self,
            input_data_queue,
            pre_process=None,
            multiprocess=False,
+           processes=None,
            ignore_error=True):
         """
         Process all input_data.
@@ -405,7 +409,7 @@ class BaseScheduler(ClassWithLogger):
         self.ignore_error = ignore_error
 
         if multiprocess:
-            self._do_multi_process(task_queue)
+            self._do_multi_process(task_queue, processes=processes)
         else:
             self._do_single_process(task_queue)
 
@@ -484,6 +488,7 @@ class BaseDBTableBackedScheduler(BaseScheduler):
         finished_id_set = self._get_finished_id_set()
 
         is_generator = isinstance(input_data_queue, types.GeneratorType)
+
         # if its generator, then left_counter always be None
         if not is_generator:
             left_counter = len(input_data_queue)
@@ -505,3 +510,137 @@ class BaseDBTableBackedScheduler(BaseScheduler):
                     left_counter=left_counter,
                 )
                 yield task
+
+
+class Encoder(object):
+    def link_encode_method(self):
+        """
+        Bind encode method.
+        """
+        # link encode method
+        try:
+            self.user_encode(None)
+            self._encode = self.user_encode
+        except NotImplementedError:
+            self._encode = self._default_encode
+        except:
+            self._encode = self.user_encode
+
+        # link decode method
+        try:
+            self.user_decode(None)
+            self._decode = self.user_decode
+        except NotImplementedError:
+            self._decode = self._default_decode
+        except:
+            self._decode = self.user_decode
+
+    def _default_encode(self, obj):
+        return pickle.dumps(obj)
+
+    def user_encode(self, obj):
+        """
+        (Optional) User defined serializer for output_data.
+
+        :returns: bytes or string.
+
+        **中文文档**
+
+        用于对处理结果序列化的函数。默认使用pickle。
+        """
+        raise NotImplementedError
+
+    def _encode(self, obj):
+        raise NotImplementedError
+
+    def _default_decode(self, bytes_or_str):
+        return pickle.loads(bytes_or_str)
+
+    def user_decode(self, bytes_or_str):
+        """
+        (Optional) User defined deserializer for output_data.
+
+        :returns: python object.
+
+        **中文文档**
+
+        用于对处理结果反序列化的函数。默认使用pickle。
+        """
+        raise NotImplementedError
+
+    def _decode(self, bytes_or_str):
+        raise NotImplementedError
+
+
+class StatusFlag(object):
+    """
+    MongoDB collection backed scheduler.
+
+    Feature:
+
+    1. there's pre-defined integer - ``duplicate_flag``, will be stored in
+        ``status`` column / field.
+    2. there's a ``edit_at`` datetime field, represent the
+        last time the document been edited.
+
+    .. note::
+
+        Any value greater or equal than ``duplicate_flag``, AND the ``edit_at``
+        time is smaller ``update_interval`` seconds ago, means it is a duplicate
+        item.
+
+    :param duplicate_flag: int, represent a status code for finished / duplicate
+    :param update_interval: int, represent need-to-update interval (unit: seconds)
+    :param status_key: str.
+    :param edit_key: str.
+    """
+
+    duplicate_flag = None  # integer
+    """
+    A integer value represent its a duplicate item. Any value greater or equal 
+    than this will be a duplicate item, otherwise its not.
+
+    You could define that when you initiate the scheduler.
+    """
+
+    update_interval = None  # integer, represent xxx seconds
+    """
+    If a item has been finished more than ``update_interval`` seconds, then
+    it should be re-do, and it is NOT a duplicate item.
+
+    You could define that when you initiate the scheduler. 
+    """
+
+    status_key = "_status"
+    edit_at_key = "_edit_at"
+
+    def pre_process_duplicate_flag_and_update_interval(self,
+                                                       duplicate_flag,
+                                                       update_interval):
+        """
+        bind settings.
+        """
+        if duplicate_flag is not None:
+            self.duplicate_flag = duplicate_flag
+        if update_interval is not None:
+            self.update_interval = update_interval
+
+    @property
+    def duplicate_flag(self):
+        """
+        A integer value represent its a duplicate item. Any value greater or equal
+        than this will be a duplicate item, otherwise its not.
+
+        You could define that when you initiate the scheduler.
+        """
+        raise NotImplementedError
+
+    @property
+    def update_interval(self):
+        """
+        If a item has been finished more than ``update_interval`` seconds, then
+        it should be re-do, and it is NOT a duplicate item.
+
+        You could define that when you initiate the scheduler.
+        """
+        raise NotImplementedError

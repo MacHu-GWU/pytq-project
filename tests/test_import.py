@@ -7,7 +7,13 @@ from pytest import raises, approx
 
 def test():
     import pytq
-    pass
+    pytq.BaseScheduler
+    pytq.BaseDBTableBackedScheduler
+    pytq.SqliteDictScheduler
+    pytq.SqlScheduler
+    pytq.SqlStatusFlagScheduler
+    pytq.MongoDBScheduler
+    pytq.MongoDBStatusFlagScheduler
 
 
 if __name__ == "__main__":

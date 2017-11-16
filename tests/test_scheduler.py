@@ -21,6 +21,9 @@ class MyScheduler(HashAndProcessImplement, BaseScheduler):
     def user_post_process(self, task):
         self._data[task.id] = task.output_data
 
+    def user_is_duplicate(self, task):
+        return task.id in self._data
+
     def __len__(self):
         return len(self._data)
 

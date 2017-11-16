@@ -17,7 +17,7 @@ def test_MongoDBScheduler():
 
     for doc in s._col.find():
         input_data = int(doc["_id"])
-        output_data = pickle.loads(doc["out"])
+        output_data = pickle.loads(doc[s.output_key])
         assert input_data * 1000 == output_data
 
 

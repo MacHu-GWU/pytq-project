@@ -2,7 +2,7 @@
 pytq_venv/
 pytq.egg-info/
 pytq-*/
-index.rst
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

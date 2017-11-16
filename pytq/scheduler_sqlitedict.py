@@ -3,71 +3,31 @@
 
 try:
     from .pkg import sqlitedict
-    from .scheduler import Task, BaseDBTableBackedScheduler
+    from .scheduler import Task, BaseDBTableBackedScheduler, Encoder
 except:  # pragma: no cover
     from pytq.pkg import sqlitedict
-    from pytq.scheduler import Task, BaseDBTableBackedScheduler
+    from pytq.scheduler import Task, BaseDBTableBackedScheduler, Encoder
 
 
-class SqliteDictScheduler(BaseDBTableBackedScheduler):
+class SqliteDictScheduler(BaseDBTableBackedScheduler, Encoder):
     user_db_path = None
 
     def __init__(self, logger=None, user_db_path=None):
         super(SqliteDictScheduler, self).__init__(logger=logger)
 
-        # link encode method
-        try:
-            self.user_encode(None)
-            encode = self.encode
-        except NotImplementedError:
-            encode = sqlitedict.encode
-        except:
-            encode = self.encode
-
-        # link decode method
-        try:
-            self.user_decode(None)
-            decode = self.decode
-        except NotImplementedError:
-            decode = sqlitedict.decode
-        except:
-            decode = self.decode
+        self.link_encode_method()
 
         # initiate back end database
         self._dct = sqlitedict.SqliteDict(
             self.user_db_path, autocommit=True,
-            encode=encode,
-            decode=decode,
+            encode=self._encode,
+            decode=self._decode,
         )
 
     @property
     def user_db_path(self):
         """
         Back-end sqlite database file path.
-        """
-        raise NotImplementedError
-
-    def user_encode(self, obj):
-        """
-        (Optional) User defined serializer for output_data.
-
-        :returns: bytes or string.
-
-        **中文文档**
-
-        用于对处理结果序列化的函数。默认使用pickle。
-        """
-        raise NotImplementedError
-
-    def user_decode(self, bytes_or_str):
-        """
-        (Optional) User defined deserializer for output_data.
-
-        :returns: python object.
-
-        **中文文档**
-
-        用于对处理结果反序列化的函数。默认使用pickle。
         """
         raise NotImplementedError
 
