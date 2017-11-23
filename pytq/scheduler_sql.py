@@ -18,6 +18,7 @@ class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
     will be serialized and stored under :attr:`~SqlScheduler.out_key` column.
 
     :param uri: connection string for sqlaclhemy.create_engine(uri)
+        Example: postgresql://username:password@localhost:5432/mydatabase
     :param table: str or sa.Table. If you use the default post process,
         the table has to have `_out` column. But a string name is recommended.
     """
@@ -35,28 +36,30 @@ class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
     def __init__(self, logger=None, uri=None, table=None):
         super(SqlScheduler, self).__init__(logger=logger)
         self.link_encode_method()
-        if uri is None:
-            uri = self.uri
+        self.prepare_uri(uri)
 
         n_cpu = cpu_count()
         if n_cpu >= 8:
             pool_size = n_cpu
         else:
             pool_size = 5
-        self.engine = sa.create_engine(uri, pool_size=pool_size)
+        self.engine = sa.create_engine(self.uri, pool_size=pool_size)
         self.connection = self.engine.connect()
-        self.prepare_table()
+        self.prepare_table(table)
 
-    @property
-    def uri(self):
-        """
-        Back-end database connection URI.
+    def prepare_uri(self, uri):
+        if uri is not None:
+            self.uri = uri
+        if self.uri is None:
+            raise NotImplementedError("Please specify db uri connect info!")
 
-        Example: postgresql://username:password@localhost:5432/mydatabase
-        """
-        raise NotImplementedError
+    def prepare_table(self, table):
+        if table is not None:
+            self.table = table
+        if self.table is None:
+            raise NotImplementedError(
+                "Please specify table name or sqlalchemy.Table!")
 
-    def prepare_table(self):
         if isinstance(self.table, sa.Table):
             metadata = self.table.metadata
             metadata.create_all(self.engine)
@@ -69,13 +72,6 @@ class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
             )
             metadata.create_all(self.engine)
             self.table = table
-
-    @property
-    def table(self):
-        """
-        sa.Table instance.
-        """
-        raise NotImplementedError
 
     @property
     def t(self):

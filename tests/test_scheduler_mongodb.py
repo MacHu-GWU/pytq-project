@@ -10,9 +10,9 @@ from pytq.scheduler_mongodb import MongoDBScheduler
 
 def test_MongoDBScheduler():
     class Scheduler(HashAndProcessImplement, MongoDBScheduler):
-        collection = mongomock.MongoClient().db.test_MongoDBScheduler
+        pass
 
-    s = Scheduler()
+    s = Scheduler(collection=mongomock.MongoClient().db.test_MongoDBScheduler)
     validate_schduler_implement(s)
 
     for doc in s._col.find():

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pymongo import collection as collection_module
 try:
     from .scheduler import Task, BaseDBTableBackedScheduler, Encoder
 except:  # pragma: no cover
@@ -32,59 +33,61 @@ class MongoDBScheduler(BaseDBTableBackedScheduler, Encoder):
 
     def __init__(self, logger=None, collection=None):
         super(MongoDBScheduler, self).__init__(logger=logger)
-
-        if collection is not None:
-            self.collection = collection
-        self._col = self.collection
-
+        self.prepare_collection(collection)
         self.link_encode_method()
 
+    def prepare_collection(self, collection):
+        if collection is not None:
+            self.collection = collection
+        if self.collection is None:
+            raise NotImplementedError("Please specify a mongodb collection!")
+        self.col = self.collection
+
     @property
-    def collection(self):
-        """
-        Backend :class:`pymongo.Collection`. You could define that when you
-        initiate the scheduler.
-        """
-        raise NotImplementedError
+    def _col(self):
+        import warnings
+        warnings.warn(
+            DeprecationWarning("this property will be deprecated soon!"))
+        return self.collection
 
     def _default_is_duplicate(self, task):
         """
         Check if ``task.id`` presents in the collection.
         """
-        return self._col.find_one({"_id": task.id}) is not None
+        return self.col.find_one({"_id": task.id}) is not None
 
     def _get_finished_id_set(self):
         """
         It's Primary key value set.
         """
         return set([
-            doc["_id"] for doc in self._col.find({}, {"_id": True})
+            doc["_id"] for doc in self.col.find({}, {"_id": True})
         ])
 
     def _default_post_process(self, task):
         """
         Save output_data into ``out`` field.
         """
-        self._col.update(
+        self.col.update(
             {"_id": task.id},
             {"$set": {self.output_key: self._encode(task.output_data)}},
             upsert=True,
         )
 
     def __len__(self):
-        return self._col.find().count()
+        return self.col.find().count()
 
     def __iter__(self):
-        for doc in self._col.find():
+        for doc in self.col.find():
             yield doc["_id"]
 
     def clear_all(self):
-        self._col.remove({})
+        self.col.remove({})
 
     def get_output(self, input_data):
         key = self.user_hash_input(input_data)
-        return self._decode(self._col.find_one({"_id": key})[self.output_key])
+        return self._decode(self.col.find_one({"_id": key})[self.output_key])
 
     def items(self):
-        for doc in self._col.find():
+        for doc in self.col.find():
             yield (doc["_id"], self._decode(doc[self.output_key]))

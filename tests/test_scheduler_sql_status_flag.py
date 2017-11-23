@@ -12,11 +12,10 @@ py_ver = "%s.%s" % (sys.version_info.major, sys.version_info.minor)
 def test_SqlStatusFlagScheduler():
     class Scheduler(HashAndProcessImplement, SqlStatusFlagScheduler):
         uri = "postgres://dhdshknw:nrrnd3NPc5-CPe_qrV_ngJHbeAmwHf0l@baasu.db.elephantsql.com:5432/dhdshknw"
-        table = "sql_status_flag_scheduler_%s" % py_ver
         duplicate_flag = 50
         update_interval = 24 * 3600
 
-    with Scheduler() as s:
+    with Scheduler(table="sql_status_flag_scheduler_%s" % py_ver) as s:
         validate_schduler_implement(s, test_multiprocess=False, processes=2)
 
 

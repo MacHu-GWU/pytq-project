@@ -11,11 +11,11 @@ from pytq.scheduler_mongodb_status_flag import MongoDBStatusFlagScheduler
 
 def test_StatusFlagScheduler():
     class Scheduler(HashAndProcessImplement, MongoDBStatusFlagScheduler):
-        collection = mongomock.MongoClient().db.test_StatusFlagScheduler
         duplicate_flag = 50
         update_interval = 24 * 3600
 
-    s = Scheduler()
+    s = Scheduler(
+        collection=mongomock.MongoClient().db.test_StatusFlagScheduler)
     validate_schduler_implement(s)
 
     for doc in s._col.find():

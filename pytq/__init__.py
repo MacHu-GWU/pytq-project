@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 __short_description__ = "A Task Queue Scheduler Framework."
 __license__ = "MIT"
 __author__ = "Sanhe Hu"

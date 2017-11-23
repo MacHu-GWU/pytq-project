@@ -36,7 +36,13 @@ class SqlStatusFlagScheduler(SqlScheduler, StatusFlag):
             duplicate_flag, update_interval,
         )
 
-    def prepare_table(self):
+    def prepare_table(self, table):
+        if table is not None:
+            self.table = table
+        if self.table is None:
+            raise NotImplementedError(
+                "Please specify table name or sqlalchemy.Table!")
+
         if isinstance(self.table, sa.Table):
             metadata = self.table.metadata
             metadata.create_all(self.engine)

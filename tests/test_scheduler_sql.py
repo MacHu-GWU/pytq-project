@@ -12,9 +12,8 @@ py_ver = "%s.%s" % (sys.version_info.major, sys.version_info.minor)
 def test():
     class Scheduler(HashAndProcessImplement, SqlScheduler):
         uri = "postgres://ujvdiudg:v-40cPbBVbUYWmpjP1ZEBTd2uf7yAA36@baasu.db.elephantsql.com:5432/ujvdiudg"
-        table = "sql_scheduler_%s" % py_ver
 
-    with Scheduler() as s:
+    with Scheduler(table="sql_scheduler_%s" % py_ver) as s:
         validate_schduler_implement(s, test_multiprocess=False, processes=2)
 
 
