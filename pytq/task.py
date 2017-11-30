@@ -24,7 +24,7 @@ class Task(AttrsClass):
     """
     Task is the core concept for task queue application.
 
-    :param id: str, fingerprint of input_data.
+    :param id: str or int, fingerprint of input_data.
     :param input_data: input data of the task.
     :param nth_counter: its the nth task in the entire queue.
     :param left_counter: there's nth task left for the entire batch job.
@@ -35,7 +35,7 @@ class Task(AttrsClass):
     :param post_process: a callable function for single task, will be called
         after the process function been called.
     """
-    id = attr.ib(validator=attr.validators.instance_of(six.string_types))
+    id = attr.ib()
     input_data = attr.ib()
     nth_counter = attr.ib(default=None)  # integer
     left_counter = attr.ib(default=None)  # integer

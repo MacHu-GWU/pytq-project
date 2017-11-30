@@ -33,6 +33,8 @@ class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
     """output column name
     """
 
+    id_type_is_str = True
+
     def __init__(self, logger=None, uri=None, table=None):
         super(SqlScheduler, self).__init__(logger=logger)
         self.link_encode_method()
@@ -65,9 +67,13 @@ class SqlScheduler(BaseDBTableBackedScheduler, Encoder):
             metadata.create_all(self.engine)
         elif isinstance(self.table, six.string_types):
             metadata = sa.MetaData()
+            if self.id_type_is_str:
+                id_column = sa.Column(self.id_key, sa.String(), primary_key=True)
+            else:
+                id_column = sa.Column(self.id_key, sa.Integer(), primary_key=True)
             table = sa.Table(
                 self.table, metadata,
-                sa.Column(self.id_key, sa.String(), primary_key=True),
+                id_column,
                 sa.Column(self.out_key, sa.PickleType()),
             )
             metadata.create_all(self.engine)

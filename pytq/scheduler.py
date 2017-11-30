@@ -104,7 +104,7 @@ class BaseScheduler(ClassWithLogger):
         are not defined.
 
         :returns: fingerprint for ``input_data``
-        :rtype: string.
+        :rtype: string or integer. depends on use case.
 
         **中文文档**
 
@@ -118,7 +118,7 @@ class BaseScheduler(ClassWithLogger):
         (Optional) Get identical fingerprint for input data.
 
         :returns: fingerprint for ``input_data``
-        :rtype: string.
+        :rtype: string or integer. depends on use case.
 
         **中文文档**
 
@@ -133,7 +133,7 @@ class BaseScheduler(ClassWithLogger):
         The real hashing method will be called.
 
         :returns: fingerprint for ``input_data``
-        :rtype: string.
+        :rtype: string or integer. depends on use case.
 
         **中文文档**
 

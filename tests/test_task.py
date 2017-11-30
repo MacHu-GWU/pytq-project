@@ -17,8 +17,9 @@ def test_none_or_is_callable():
     none_or_is_callable("NA", "NA", str)
 
     def do_nothing(task): return None
+
     task = Task(
-        id="0", input_data=0,
+        id=0, input_data=0,
         pre_process=do_nothing, post_process=do_nothing,
     )
     task._pre_process()

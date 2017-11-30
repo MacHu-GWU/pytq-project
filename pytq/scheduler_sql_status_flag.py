@@ -48,9 +48,13 @@ class SqlStatusFlagScheduler(SqlScheduler, StatusFlag):
             metadata.create_all(self.engine)
         elif isinstance(self.table, six.string_types):
             metadata = sa.MetaData()
+            if self.id_type_is_str:
+                id_column = sa.Column(self.id_key, sa.String(), primary_key=True)
+            else:
+                id_column = sa.Column(self.id_key, sa.Integer(), primary_key=True)
             table = sa.Table(
                 self.table, metadata,
-                sa.Column(self.id_key, sa.String(), primary_key=True),
+                id_column,
                 sa.Column(self.out_key, sa.PickleType()),
                 sa.Column(self.status_key, sa.Integer()),
                 sa.Column(self.edit_at_key, sa.DateTime())
